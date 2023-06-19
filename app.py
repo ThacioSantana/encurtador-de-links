@@ -3,6 +3,8 @@ import string
 import random
 import datetime
 import sqlite3
+import urllib.parse
+
 
 app = Flask(__name__)
 url_mapping = {}
@@ -14,9 +16,11 @@ def generate_short_url():
     return short_url
 
 def is_valid_url(url):
-    # Implemente a validação de URL de acordo com suas necessidades
-    # Retorne True se a URL for válida e False caso contrário
-    return True
+    try:
+        result = urllib.parse.urlparse(url)
+        return all([result.scheme, result.netloc])
+    except ValueError:
+        return False
 
 def execute_query(query, params=None):
     conn = sqlite3.connect('urls.db')
@@ -48,11 +52,13 @@ def shorten_url():
         return jsonify({'error': 'Invalid URL'}), 400
 
     short_url = generate_short_url()
+    full_short_url = request.base_url + '/' + short_url  # Inclui a rota completa na URL encurtada
+
     query = "INSERT INTO urls (short_url, long_url) VALUES (?, ?)"
     params = (short_url, long_url)
     execute_query(query, params)
 
-    return jsonify({'short_url': short_url}), 201
+    return jsonify({'short_url': full_short_url}), 201  # Retorna a URL encurtada com a rota completa
 
 @app.route('/shorten/custom', methods=['POST'])
 def shorten_custom_url():
